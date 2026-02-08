@@ -28,7 +28,7 @@ def generate_heightmap(size: int, scale: int, seed:int):
 """
 Получение высоты по карте шума
 """
-def get_height(noise_heightmap, x, y, can_down=False):
+def get_height(noise_heightmap, x, y, can_down=False, is_nether = False):
     h = noise_heightmap[int(2047 + x)//16, int(2047 + y)//16]
     if can_down:
         if -0.55 < h <= -0.3:
@@ -36,8 +36,16 @@ def get_height(noise_heightmap, x, y, can_down=False):
             h -= 0.25 + randint(5, 15)/100
 
     m, h = 1 if h >= 0 else -1, abs(h)
-    return min(200, max(-50, int(58 + m * math.tan((math.pi *h)/2)*math.exp(h)*(15/(1 + math.exp(-h))))))
 
+    raw_height = min(200, max(-50, int(58 + m * math.tan((math.pi *h)/2)*math.exp(h)*(15/(1 + math.exp(-h))))))
+    if not is_nether:
+        return raw_height
+    else:
+        # сжатие диапазона
+        old_min, old_max = -50, 200
+        new_min, new_max = 10, 140
+
+        return int(new_min + (raw_height - old_min) * (new_max - new_min) / (old_max - old_min))
 
 """
 Визуальная картинка шума

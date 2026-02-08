@@ -18,6 +18,13 @@ def main():
     )
 
     parser.add_argument(
+        "-n", "--nether",
+        type=bool,
+        default=False,
+        help="Тип карты: False - overworld; True - nether. Влияет на высоты"
+    )
+
+    parser.add_argument(
         "-l", "--line",
         type=bool,
         default=False,
@@ -45,7 +52,7 @@ def main():
         help="Вывести картинку вид сверху"
     )
 
-
+    is_nether = parser.parse_args().nether
     input_count = parser.parse_args().count
     line = parser.parse_args().line
 
@@ -67,8 +74,12 @@ def main():
         output_arr = []
 
         #Файл для сохранения
-        os.makedirs('../output/functions', exist_ok=True)
-        file_list = open(f'../output/functions/{count}.mcfunction', 'w+', encoding='utf-8')
+        if is_nether:
+            os.makedirs('../output/functions/nether', exist_ok=True)
+            file_list = open(f'../output/functions/nether/{count}.mcfunction', 'w+', encoding='utf-8')
+        else:
+            os.makedirs('../output/functions/overworld', exist_ok=True)
+            file_list = open(f'../output/functions/overworld/{count}.mcfunction', 'w+', encoding='utf-8')
         rad = 0
         for x in range(19):  # кол-во колец
             #начальный угол
@@ -102,13 +113,13 @@ def main():
                 rad += randint(70, 90) + randint(x * 3, int(x ** 2))
 
             # Рисует кольцо с заданным параметрами
-            create_circle(arr, (x_center, y_center), rad, alf, alf_step, spread, heightmap, img, output_arr)
+            create_circle(arr, (x_center, y_center), rad, alf, alf_step, spread, heightmap, img, output_arr, is_nether)
 
         # Добавляем нулевой остров, чтобы ему задалась высота
-        start_island = [0, get_height(heightmap, 0, 0), 0]
+        start_island = [0, get_height(heightmap, 0, 0, is_nether=is_nether), 0]
 
         # После отрисовки всех колец задаем им размер
-        give_size(output_arr, img)
+        give_size(output_arr, img, is_nether=is_nether)
 
         print(len(output_arr), "всего", end=" ")
         print([x[1] in range(85, 300) for x in output_arr].count(True), "высоких", end=" ")
@@ -118,9 +129,12 @@ def main():
         os.makedirs('../output/images', exist_ok=True)
         new_img.save(f'../output/images/{count}.png', dpi=(3, 3))
 
-        file_list.write(f"data modify storage dsb_gen:gen Islands set value {output_arr}\n")
-        file_list.write(
-            f"data modify storage dsb_gen:gen StartIsland set value {{x:{start_island[0]}, y:{start_island[1]}, z:{start_island[2]}}}")
+        if not is_nether:
+            file_list.write(f"data modify storage dsb_gen:gen Islands set value {output_arr}\n")
+            file_list.write(f"data modify storage dsb_gen:gen StartIsland set value {{x:{start_island[0]}, y:{start_island[1]}, z:{start_island[2]}}}")
+        else:
+            file_list.write(f"data modify storage dsb_gen:gen NetherIslands set value {output_arr}\n")
+
         file_list.close()
 
         ###Вывод фото, графиков
@@ -134,7 +148,7 @@ def main():
             args_x.append(i[0])
             args_y.append(i[1])
             args_z.append(i[2])
-
+            
         show_2d = parser.parse_args().show_2d
         if parser.parse_args().show_3d:
             plot_height_3d_xy_as_height(args_x, args_y, args_z, line = line, block = not(show_2d))
